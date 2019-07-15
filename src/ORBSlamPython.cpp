@@ -625,7 +625,7 @@ void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vecto
     }
 }
 
-void ORBSlamPython::tum_example(boost::python::list arguments){
+void ORBSlamPython::tum_example(boost::python::list arguments, boost::python::list data){
 	boost::python::ssize_t argc = boost::python::len(arguments);
 	string argv[argc];
 	for( int i =0; i<argc; ++i) argv[i] = boost::python::extract<string>(arguments[i]);
@@ -643,9 +643,11 @@ void ORBSlamPython::tum_example(boost::python::list arguments){
 	string option = argc>5?argv[5]:"";
 	int frameno = argc>6?std::atoi(argv[6].c_str()):0;
 	string order = argc>7?argv[7]:"";
-    LoadImages(strFile, vstrImageFilenames, vTimestamps);
-	
-    int nImages = vstrImageFilenames.size();
+	for(int i = 0; i<boost::python::len(data); ++i){
+		boost::python::tuple t = boost::python::extract<boost::python::tuple>(data[i]);
+		vstrImageFilenames.push_back(boost::python::extract<string>(t[0]));
+		vTimestamps.push_back(boost::python::extract<double>(t[1]));
+	}	
 
 	
 	cout<<mapName<<endl;
@@ -653,7 +655,7 @@ void ORBSlamPython::tum_example(boost::python::list arguments){
 	cout<<strFile<<endl; 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
 	ORB_SLAM2::Osmap osmap = ORB_SLAM2::Osmap(this->system);	
-	osmap.verbose = true;
+	//osmap.verbose = true;
 	bool osmap_read = false;
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -661,7 +663,7 @@ void ORBSlamPython::tum_example(boost::python::list arguments){
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages << endl << endl;
+    cout << "Images in the sequence: " << nImages<< endl;
 	double start_time, end_time;
     // Main loop
     cv::Mat im;
@@ -678,6 +680,7 @@ void ORBSlamPython::tum_example(boost::python::list arguments){
 		else{
 			iter = ni;
 		}
+
         // Read image from file
         im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[iter],CV_LOAD_IMAGE_UNCHANGED);
 		cv::resize(im,im,cv::Size(320,240));

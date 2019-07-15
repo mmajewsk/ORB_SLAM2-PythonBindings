@@ -39,7 +39,7 @@ public:
     void setRGBMode(bool rgb);
     void setUseViewer(bool useViewer);
     
-	void tum_example(boost::python::list arguments);
+	void tum_example(boost::python::list arguments, boost::python::list data);
     static bool saveSettingsFile(boost::python::dict settings, std::string settingsFilename);
     static boost::python::dict loadSettingsFile(std::string settingsFilename);
     
