@@ -39,7 +39,7 @@ public:
     void setRGBMode(bool rgb);
     void setUseViewer(bool useViewer);
     
-	void tum_example(boost::python::list arguments, boost::python::list data);
+	void tum_example(std::string mapName , std::string option , int frameno);
     static bool saveSettingsFile(boost::python::dict settings, std::string settingsFilename);
     static boost::python::dict loadSettingsFile(std::string settingsFilename);
     
@@ -48,7 +48,14 @@ public:
     ORB_SLAM2::System::eSensor sensorMode;
     std::shared_ptr<ORB_SLAM2::System> system;
     bool bUseViewer;
+	vector<cv::Mat> vImages;
+    vector<double> vTimestamps;
     bool bUseRGB;
+	std::shared_ptr<ORB_SLAM2::Osmap> sys_osmap;
+	void loop(std::vector<cv::Mat> vImages, std::vector<double> vTimestamps, int frameno, string option, string mapName);
+	void osmap_init();
+	void osmap_append_frame(cv::Mat, double);
+	
 };
 
 class OsmapPython{

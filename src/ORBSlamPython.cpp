@@ -20,6 +20,7 @@ static void init_ar() {
 }
 
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(map_save_overloads, OsmapPython::map_save, 1, 2);
+BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(osmap_tum_example, ORBSlamPython::tum_example, 0, 3);
 BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(map_load_overloads, OsmapPython::map_load, 1, 3);
 BOOST_PYTHON_MODULE(orbslam2)
 {
@@ -65,7 +66,9 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("save_settings_file", &ORBSlamPython::saveSettingsFile)
         .staticmethod("save_settings_file")
         .def("load_settings_file", &ORBSlamPython::loadSettingsFile)
-		.def("tum_example", &ORBSlamPython::tum_example)
+		.def("tum_example", &ORBSlamPython::tum_example, osmap_tum_example())
+		.def("osmap_init", &ORBSlamPython::osmap_init)
+		.def("osmap_append_frame", &ORBSlamPython::osmap_append_frame)
 		.staticmethod("load_settings_file");
 	
      boost::python::class_<OsmapPython, boost::noncopyable>("Osmap", boost::python::init<ORBSlamPython&>())
@@ -594,165 +597,86 @@ void OsmapPython::map_load(std::string yamlFilename, bool noSetBad , bool pauseT
 void OsmapPython::verbose_on(){
 	osmap->verbose=true;
 }
-using namespace std;
+void ORBSlamPython::osmap_init(){
+	sys_osmap = std::make_shared<ORB_SLAM2::Osmap>(this->system);	
 
-void LoadImages(const string &strFile, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
-{
-    ifstream f;
-    f.open(strFile.c_str());
-
-    // skip first three lines
-    string s0;
-    getline(f,s0);
-    getline(f,s0);
-    getline(f,s0);
-
-    while(!f.eof())
-    {
-        string s;
-        getline(f,s);
-        if(!s.empty())
-        {
-            stringstream ss;
-            ss << s;
-            double t;
-            string sRGB;
-            ss >> t;
-            vTimestamps.push_back(t);
-            ss >> sRGB;
-            vstrImageFilenames.push_back(sRGB);
-        }
-    }
 }
-
-void ORBSlamPython::tum_example(boost::python::list arguments, boost::python::list data){
-	boost::python::ssize_t argc = boost::python::len(arguments);
-	string argv[argc];
-	for( int i =0; i<argc; ++i) argv[i] = boost::python::extract<string>(arguments[i]);
-    if(argc < 4)
-    {
-        cerr << endl << "Usage: ./mono_tum path_to_vocabulary path_to_settings path_to_sequence" << endl;
-    }
-
-    cout << endl << "-------" << endl;
-    // Retrieve paths to images
-    vector<string> vstrImageFilenames;
+std::tuple<std::vector<cv::Mat>,std::vector<double>> processImages(boost::python::list data){
+	vector<cv::Mat> vImages;
     vector<double> vTimestamps;
-    string strFile = string(argv[3])+"/rgb.txt";
-	string mapName = argc>4?argv[4]:"myFirstMap";
-	string option = argc>5?argv[5]:"";
-	int frameno = argc>6?std::atoi(argv[6].c_str()):0;
-	string order = argc>7?argv[7]:"";
-	for(int i = 0; i<boost::python::len(data); ++i){
+	int nImages = boost::python::len(data);
+	for(int i = 0; i< nImages; ++i){
 		boost::python::tuple t = boost::python::extract<boost::python::tuple>(data[i]);
-		vstrImageFilenames.push_back(boost::python::extract<string>(t[0]));
+		boost::python::object _m = t[1];
+		vImages.push_back(pbcvt::fromNDArrayToMat(_m.ptr()));
 		vTimestamps.push_back(boost::python::extract<double>(t[1]));
 	}	
+	return std::make_tuple(vImages, vTimestamps);
 
-	
-	cout<<mapName<<endl;
-    cout << endl << "-------" << endl;
-	cout<<strFile<<endl; 
-    // Create SLAM system. It initializes all system threads and gets ready to process frames.
-	ORB_SLAM2::Osmap osmap = ORB_SLAM2::Osmap(this->system);	
-	//osmap.verbose = true;
-	bool osmap_read = false;
-    // Vector for tracking time statistics
-    vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
+}
+void wait_some_time(int ni, int nImages, double prev_ts, double next_ts, double tframe, double ttrack){
+		double T=0;
+		if(ni<nImages-1)
+			T = next_ts-tframe;
+		else if(ni>0)
+			T = tframe-prev_ts;
+			if(ttrack<T)
+		usleep((T-ttrack)*1e6);
 
-    cout << endl << "-------" << endl;
-    cout << "Start processing sequence ..." << endl;
-    cout << "Images in the sequence: " << nImages<< endl;
-	double start_time, end_time;
-    // Main loop
-    cv::Mat im;
-	if(order == "reverse"){
-		start_time = vTimestamps[0];
-		end_time = vTimestamps[nImages-1];
-	}
+}
+
+void ORBSlamPython::loop(std::vector<cv::Mat> vImages, std::vector<double> vTimestamps, int frameno, string option, string mapName){
+	cv::Mat im;
+	int nImages = vImages.size();
 	int iter;
-    for(int ni=frameno; ni<nImages; ni++)
+	double start_time, end_time;
+	for(int ni=frameno; ni<nImages; ni++)
     {
-		if(order=="reverse"){
-			iter = nImages-1-ni;
-		}
-		else{
-			iter = ni;
-		}
-
-        // Read image from file
-        im = cv::imread(string(argv[3])+"/"+vstrImageFilenames[iter],CV_LOAD_IMAGE_UNCHANGED);
+		iter = ni;
+		im = vImages[iter];
 		cv::resize(im,im,cv::Size(320,240));
         double tframe = vTimestamps[iter];
-		if(order=="reverse"){
-			tframe = tframe - (end_time-start_time);
-		}
-
         if(im.empty())
         {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenames[iter] << endl;
+                 << iter << endl;
         }
 
-#ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
-#endif
-
-		cout<<"bftrack"<<iter<<endl;
-        // Pass the image to the SLAM system
         this->system->TrackMonocular(im,tframe);
-
-		cout<<"aftrtrackloop"<<iter<<endl;
-#ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
-#else
-        std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
-#endif
-
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 		if(ni==frameno && (option=="load" || option=="both") ){
-			osmap.mapLoad(mapName+".yaml", false, false);
-			osmap_read = true;
+			this->sys_osmap->mapLoad(mapName+".yaml", false, false);
 		}
-        vTimesTrack[ni]=ttrack;
 
         // Wait to load the next frame
-        double T=0;
-		if(order == "reverse"){
-			T=ttrack+0.12;
-		}
-		else{
-			if(ni<nImages-1)
-				T = vTimestamps[ni+1]-tframe;
-			else if(ni>0)
-				T = tframe-vTimestamps[ni-1];
-		}
-                if(ttrack<T)
-            usleep((T-ttrack)*1e6);
-    }
+		wait_some_time(ni,nImages, vTimestamps[ni-1], vTimestamps[ni+1], tframe, ttrack);
+            }
+}
+void ORBSlamPython::osmap_append_frame(cv::Mat im, double ts){
+	this->vImages.push_back(im);
+	this->vTimestamps.push_back(ts);
+}
+void ORBSlamPython::tum_example(std::string mapName = "myFirstMap", std::string option = "", int frameno=0){
+
+    cout << endl << "-------" << endl;
+    // Retrieve paths to images
+    //vector<string> vstrImageFilenames;
+	//string mapName = argc>4?argv[4]:"myFirstMap";
+	//string option = argc>5?argv[5]:"";
+	//int frameno = argc>6?std::atoi(argv[6].c_str()):0;
+    // Vector for tracking time statistics
+	//auto tup= processImages(data);
+	//vImages = std::get<0>(tup);
+	//vTimestamps = std::get<1>(tup);
+	
+	loop(vImages, vTimestamps, frameno, option, mapName);
 	if(option=="save" || option == "both")
 	{
-		osmap.mapSave(mapName);
+		this->sys_osmap->mapSave(mapName);
 	}
-
-    // Stop all threads
     this->system->Shutdown();
-
-    // Tracking time statistics
-    sort(vTimesTrack.begin(),vTimesTrack.end());
-    float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
-    {
-        totaltime+=vTimesTrack[ni];
-    }
-    cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
-
-    // Save camera trajectory
     this->system->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
 
 }
