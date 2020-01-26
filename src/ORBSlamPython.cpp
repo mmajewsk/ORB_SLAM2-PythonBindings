@@ -55,6 +55,7 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("set_mode", &ORBSlamPython::setMode)
         .def("set_use_viewer", &ORBSlamPython::setUseViewer)
         .def("get_keyframe_points", &ORBSlamPython::getKeyframePoints)
+        .def("get_keyframe_list", &ORBSlamPython::getKeyframeList)
         .def("get_trajectory_points", &ORBSlamPython::getTrajectoryPoints)
         .def("get_tracked_mappoints", &ORBSlamPython::getTrackedMappoints)
         .def("get_tracking_state", &ORBSlamPython::getTrackingState)
@@ -317,7 +318,37 @@ boost::python::list ORBSlamPython::getKeyframePoints() const
 
     return trajectory;
 }
+boost::python::list ORBSlamPython::getKeyframeList() const
+{
+    if (!system)
+    {
+        return boost::python::list();
+    }
 
+    vector<ORB_SLAM2::KeyFrame*> vpKFs = system->GetKeyFrames();
+    std::sort(vpKFs.begin(), vpKFs.end(), ORB_SLAM2::KeyFrame::lId);
+
+    boost::python::list keyframe_list;
+
+    for(size_t i=0; i<vpKFs.size(); i++)
+    {
+        ORB_SLAM2::KeyFrame* pKF = vpKFs[i];
+
+        // pKF->SetPose(pKF->GetPose()*Two);
+
+        if(pKF->isBad())
+            continue;
+
+        cv::Mat R = pKF->GetRotation().t();
+        cv::Mat t = pKF->GetCameraCenter();
+        boost::python::dict d;
+        d["mnId"] = pKF->mnId;
+        d["mTimeStamp"] = pKF->mTimeStamp;
+        keyframe_list.append(d);
+    }
+
+    return keyframe_list;
+}
 boost::python::list ORBSlamPython::getTrackedMappoints() const
 {
     if (!system)

@@ -31,6 +31,7 @@ public:
     unsigned int getNumFeatures() const;
     unsigned int getNumMatches() const;
     boost::python::list getKeyframePoints() const;
+    boost::python::list getKeyframeList() const;
     boost::python::list getTrajectoryPoints() const;
     boost::python::list getTrackedMappoints() const;
     bool saveSettings(boost::python::dict settinplegs) const;
