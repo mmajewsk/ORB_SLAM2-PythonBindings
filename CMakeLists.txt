@@ -69,5 +69,5 @@ if (Pangolin_FOUND)
   target_link_libraries(${TARGET_MODULE_NAME} ${Pangolin_LIBRARIES})
 endif()
 
-install(TARGETS ${TARGET_MODULE_NAME} DESTINATION lib/python3.5/dist-packages)
+install(TARGETS ${TARGET_MODULE_NAME} DESTINATION /home/mwm/anaconda3/envs/SlamDunkEnv/lib/python3.6/site-packages/)
 

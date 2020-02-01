@@ -142,7 +142,7 @@ bool ORBSlamPython::processMono(cv::Mat image, double timestamp)
     {
 		
 		cv::resize(image,image,cv::Size(320,240));
-        cv::Mat pose = system->TrackMonocular(image, timestamp);
+        this->current_pose = system->TrackMonocular(image, timestamp);
 		usleep(0.1*1e6);
         return !pose.empty();
     }
@@ -511,6 +511,18 @@ bool ORBSlamPython::saveSettingsFile(boost::python::dict settings, std::string s
     }
     
     return true;
+}
+
+void ORBSlamPython::activate_localisation_only(){
+    this->system->ActivateLocalizationMode();
+}
+
+void ORBSlamPython::deactivate_localisation_only(){
+    this->system->DectivateLocalizationMode();
+}
+
+boost::python::dict ORBSlamPython::get_current_pose(){
+return this->current_pose;
 }
 
 // Helpers for reading cv::FileNode objects into python objects.

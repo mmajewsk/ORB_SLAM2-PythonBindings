@@ -16,7 +16,7 @@ public:
     ORBSlamPython(const char* vocabFile, const char* settingsFile,
         ORB_SLAM2::System::eSensor sensorMode = ORB_SLAM2::System::eSensor::RGBD);
     ~ORBSlamPython();
-    
+
     bool initialize();
     bool isRunning();
     bool loadAndProcessMono(std::string imageFile, double timestamp);
@@ -36,6 +36,7 @@ public:
     boost::python::list getTrackedMappoints() const;
     bool saveSettings(boost::python::dict settinplegs) const;
     boost::python::dict loadSettings() const;
+    cv::Mat current_pose;
     void setMode(ORB_SLAM2::System::eSensor mode);
     void setRGBMode(bool rgb);
     void setUseViewer(bool useViewer);
@@ -53,7 +54,10 @@ public:
 	void osmap_init();
 	void map_save(std::string basefilename, bool pauseThreads);
 	void map_load(std::string yamlFilename, bool noSetBad, bool pauseThreads );
-	
+	void activate_localisation();
+	void deactivate_localisation_only();
+    boost::python::ndarray get_current_pose();
+
 };
 
 
