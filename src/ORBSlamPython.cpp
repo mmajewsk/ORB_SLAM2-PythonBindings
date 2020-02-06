@@ -59,11 +59,14 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("get_trajectory_points", &ORBSlamPython::getTrajectoryPoints)
         .def("get_tracked_mappoints", &ORBSlamPython::getTrackedMappoints)
         .def("get_tracking_state", &ORBSlamPython::getTrackingState)
+        .def("activate_localisation_only", &ORBSlamPython::activate_localisation_only)
+        .def("deactivate_localisation_only", &ORBSlamPython::deactivate_localisation_only)
         .def("get_num_features", &ORBSlamPython::getNumFeatures)
         .def("get_num_matched_features", &ORBSlamPython::getNumMatches)
         .def("save_settings", &ORBSlamPython::saveSettings)
         .def("load_settings", &ORBSlamPython::loadSettings)
         .def("save_settings_file", &ORBSlamPython::saveSettingsFile)
+        .def("get_current_pose", &ORBSlamPython::get_current_pose)
         .staticmethod("save_settings_file")
         .def("load_settings_file", &ORBSlamPython::loadSettingsFile)
 		.def("osmap_init", &ORBSlamPython::osmap_init)
@@ -142,8 +145,11 @@ bool ORBSlamPython::processMono(cv::Mat image, double timestamp)
     {
 		
 		cv::resize(image,image,cv::Size(320,240));
-        this->current_pose = system->TrackMonocular(image, timestamp);
+        //this->current_pose = system->TrackMonocular(image, timestamp);
+        cv::Mat pose= system->TrackMonocular(image, timestamp);
+        //this->current_pose = pose.clone();
 		usleep(0.1*1e6);
+        //return this->current_pose.empty();
         return !pose.empty();
     }
     else
@@ -518,10 +524,10 @@ void ORBSlamPython::activate_localisation_only(){
 }
 
 void ORBSlamPython::deactivate_localisation_only(){
-    this->system->DectivateLocalizationMode();
+    this->system->DeactivateLocalizationMode();
 }
 
-boost::python::dict ORBSlamPython::get_current_pose(){
+cv::Mat ORBSlamPython::get_current_pose(){
 return this->current_pose;
 }
 

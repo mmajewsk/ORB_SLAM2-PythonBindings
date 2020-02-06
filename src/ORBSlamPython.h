@@ -54,9 +54,9 @@ public:
 	void osmap_init();
 	void map_save(std::string basefilename, bool pauseThreads);
 	void map_load(std::string yamlFilename, bool noSetBad, bool pauseThreads );
-	void activate_localisation();
+	void activate_localisation_only();
 	void deactivate_localisation_only();
-    boost::python::ndarray get_current_pose();
+    cv::Mat get_current_pose();
 
 };
 
