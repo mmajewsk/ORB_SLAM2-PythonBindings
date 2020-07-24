@@ -67,6 +67,7 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("load_settings", &ORBSlamPython::loadSettings)
         .def("save_settings_file", &ORBSlamPython::saveSettingsFile)
         .def("get_current_pose", &ORBSlamPython::get_current_pose)
+        .def("get_current_pose_txt", &ORBSlamPython::get_current_pose_txt)
         .staticmethod("save_settings_file")
         .def("load_settings_file", &ORBSlamPython::loadSettingsFile)
 		.def("osmap_init", &ORBSlamPython::osmap_init)
@@ -529,6 +530,17 @@ void ORBSlamPython::deactivate_localisation_only(){
 
 cv::Mat ORBSlamPython::get_current_pose(){
 return this->current_pose;
+}
+
+std::string ORBSlamPython::get_current_pose_txt(){
+cv::Size size = this->current_pose.size();
+
+  int total = size.width * size.height * this->current_pose.channels();
+  std::cout << "Mat size = " << total << std::endl;
+
+  std::vector<uchar> data(this->current_pose.ptr(), this->current_pose.ptr() + total);
+  std::string s(data.begin(), data.end());
+return s;
 }
 
 // Helpers for reading cv::FileNode objects into python objects.
