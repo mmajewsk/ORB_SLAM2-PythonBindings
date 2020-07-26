@@ -148,7 +148,6 @@ bool ORBSlamPython::processMono(cv::Mat image, double timestamp)
         //this->current_pose = system->TrackMonocular(image, timestamp);
         cv::Mat pose= system->TrackMonocular(image, timestamp);
         this->current_pose = pose.clone();
-		usleep(0.1*1e6);
         //return this->current_pose.empty();
         return !pose.empty();
     }
