@@ -1,3 +1,6 @@
+# About this fork.
+This fork is meant to be used as a part of [Tonic Project](https://github.com/mmajewsk/Tonic), and was created for usage with [osmap serialization](https://github.com/mmajewsk/osmap). The scripts and docker for installation is contained here: https://github.com/mmajewsk/TonicSlamDunk 
+
 # ORB_SLAM2-PythonBindings
 A python wrapper for ORB_SLAM2, which can be found at [https://github.com/raulmur/ORB_SLAM2](https://github.com/raulmur/ORB_SLAM2).
 This is designed to work with the base version of ORB_SLAM2, with a couple of minimal API changes to access the system output.
