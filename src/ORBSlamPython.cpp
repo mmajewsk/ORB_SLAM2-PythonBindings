@@ -67,7 +67,7 @@ BOOST_PYTHON_MODULE(orbslam2)
         .def("load_settings", &ORBSlamPython::loadSettings)
         .def("save_settings_file", &ORBSlamPython::saveSettingsFile)
         .def("get_current_pose", &ORBSlamPython::get_current_pose)
-        .def("get_current_pose_txt", &ORBSlamPython::get_current_pose_txt)
+        .def("get_current_pose_list", &ORBSlamPython::get_current_pose_list)
         .staticmethod("save_settings_file")
         .def("load_settings_file", &ORBSlamPython::loadSettingsFile)
 		.def("osmap_init", &ORBSlamPython::osmap_init)
@@ -149,7 +149,7 @@ bool ORBSlamPython::processMono(cv::Mat image, double timestamp)
         //this->current_pose = system->TrackMonocular(image, timestamp);
         cv::Mat pose= system->TrackMonocular(image, timestamp);
         this->current_pose = pose.clone();
-		usleep(0.1*1e6);
+		//usleep(0.1*1e6);
         //return this->current_pose.empty();
         return !pose.empty();
     }
@@ -531,16 +531,36 @@ void ORBSlamPython::deactivate_localisation_only(){
 cv::Mat ORBSlamPython::get_current_pose(){
 return this->current_pose;
 }
+std::string type2str(int type) {
+  std::string r;
 
-std::string ORBSlamPython::get_current_pose_txt(){
-cv::Size size = this->current_pose.size();
+  uchar depth = type & CV_MAT_DEPTH_MASK;
+  uchar chans = 1 + (type >> CV_CN_SHIFT);
 
-  int total = size.width * size.height * this->current_pose.channels();
-  std::cout << "Mat size = " << total << std::endl;
+  switch ( depth ) {
+    case CV_8U:  r = "8U"; break;
+    case CV_8S:  r = "8S"; break;
+    case CV_16U: r = "16U"; break;
+    case CV_16S: r = "16S"; break;
+    case CV_32S: r = "32S"; break;
+    case CV_32F: r = "32F"; break;
+    case CV_64F: r = "64F"; break;
+    default:     r = "User"; break;
+  }
 
-  std::vector<uchar> data(this->current_pose.ptr(), this->current_pose.ptr() + total);
-  std::string s(data.begin(), data.end());
-return s;
+  r += "C";
+  r += (chans+'0');
+
+  return r;
+}
+boost::python::list ORBSlamPython::get_current_pose_list(){
+    boost::python::list l;
+    for (int i = 0; i < this->current_pose.rows; i++){
+        for (int j = 0; j < this->current_pose.cols; j++){
+            l.append(this->current_pose.at<float>(i,j));
+        }
+    }
+    return l;
 }
 
 // Helpers for reading cv::FileNode objects into python objects.

@@ -57,7 +57,7 @@ public:
 	void activate_localisation_only();
 	void deactivate_localisation_only();
     cv::Mat get_current_pose();
-    std::string ORBSlamPython::get_current_pose_txt();
+    boost::python::list get_current_pose_list();
 
 
 };
